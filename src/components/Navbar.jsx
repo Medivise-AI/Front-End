@@ -41,7 +41,10 @@ export default function Navbar() {
         </Link>
 
         <div className="flex gap-4 items-center">
-          <Link to="/dashboard" className="hover:text-blue-200 dark:hover:text-gray-300 transition">
+          <Link
+            to="/dashboard"
+            className="hover:text-blue-200 dark:hover:text-gray-300 transition"
+          >
             Dashboard
           </Link>
 
