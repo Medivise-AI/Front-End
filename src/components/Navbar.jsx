@@ -1,10 +1,18 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import api from "../api/axios"; 
 
 export default function Navbar() {
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useState(false);
+  const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") setDarkMode(true);
+  }, []);
+
+  
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -15,15 +23,19 @@ export default function Navbar() {
     }
   }, [darkMode]);
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") setDarkMode(true);
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    sessionStorage.clear();
-    navigate("/");
+  
+  const handleLogout = async () => {
+    setLoading(true);
+    try {
+      await api.post("/auth/logout"); 
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      localStorage.removeItem("token");
+      sessionStorage.clear();
+      setLoading(false);
+      navigate("/");
+    }
   };
 
   return (
@@ -57,9 +69,12 @@ export default function Navbar() {
 
           <button
             onClick={handleLogout}
-            className="bg-white text-blue-600 px-4 py-1.5 rounded-md hover:bg-blue-100 transition"
+            disabled={loading}
+            className={`bg-white text-blue-600 px-4 py-1.5 rounded-md hover:bg-blue-100 transition ${
+              loading && "opacity-60 cursor-not-allowed"
+            }`}
           >
-            Logout
+            {loading ? "Logging out..." : "Logout"}
           </button>
         </div>
       </div>

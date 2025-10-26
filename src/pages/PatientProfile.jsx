@@ -1,24 +1,109 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 function PatientProfile() {
-  const [patient, setPatient] = useState({
-    name: "Mohammed Khalid",
-    age: 42,
-    gender: "Male",
-    email: "mohammed.khalid@example.com",
-    phone: "+962 79 123 4567",
-    history: "Type 2 Diabetes, Hypertension",
-    tests: [
-      { name: "Blood Sugar Test", summary: "Glucose level slightly elevated", date: "2025-10-18" },
-      { name: "Cholesterol Test", summary: "LDL within normal range", date: "2025-10-10" },
-    ],
-    notes: "Monitor diet and daily exercise. Schedule next test in 3 months.",
-  });
-
+  const [patient, setPatient] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [newFile, setNewFile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState(patient);
+  const [editData, setEditData] = useState(null);
 
+  const patientId = "123"; // 👈 يمكن تغييره لاحقًا بناءً على المريض المحدد في النظام أو URL
+
+  // ✅ جلب بيانات المريض من الـ API
+  useEffect(() => {
+    const fetchPatient = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(
+          `https://yourapi.com/api/patients/${patientId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        setPatient(response.data);
+        setEditData(response.data);
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to load patient data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPatient();
+  }, [patientId]);
+
+  // ✅ رفع ملف جديد (تحليل أو اختبار) عبر الـ API
+  const handleUpload = async () => {
+    if (!newFile) return alert("Please select a file first.");
+    try {
+      const formData = new FormData();
+      formData.append("file", newFile);
+
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `https://yourapi.com/api/patients/${patientId}/upload-test`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // تحديث الاختبارات بعد النجاح
+      setPatient({
+        ...patient,
+        tests: [...patient.tests, response.data],
+      });
+      setNewFile(null);
+    } catch (err) {
+      alert(err.response?.data?.message || "Upload failed.");
+    }
+  };
+
+  // ✅ تعديل بيانات المريض
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.put(
+        `https://yourapi.com/api/patients/${patientId}`,
+        editData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setPatient(response.data);
+      setIsEditing(false);
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to update patient info.");
+    }
+  };
+
+  // ✅ حذف المريض
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete this patient?")) return;
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`https://yourapi.com/api/patients/${patientId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      alert("Patient deleted successfully!");
+      window.location.href = "/dashboard";
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to delete patient.");
+    }
+  };
+
+  // ✅ تحميل المظهر (داكن / فاتح)
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark") {
@@ -28,22 +113,17 @@ function PatientProfile() {
     }
   }, []);
 
-  const handleUpload = () => {
-    if (newFile) {
-      const newTest = {
-        name: newFile.name,
-        summary: "AI summary pending...",
-        date: new Date().toISOString().split("T")[0],
-      };
-      setPatient({ ...patient, tests: [...patient.tests, newTest] });
-      setNewFile(null);
-    }
-  };
+  if (loading)
+    return (
+      <div className="text-center mt-20 text-lg text-gray-600 dark:text-gray-300">
+        Loading patient data...
+      </div>
+    );
 
-  const handleSave = () => {
-    setPatient(editData);
-    setIsEditing(false);
-  };
+  if (error)
+    return (
+      <div className="text-center mt-20 text-red-500 font-semibold">{error}</div>
+    );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 pt-28 pb-16 px-6 transition-colors duration-500">
@@ -60,7 +140,10 @@ function PatientProfile() {
             >
               Edit
             </button>
-            <button className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+            <button
+              onClick={handleDelete}
+              className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
+            >
               Delete
             </button>
           </div>
@@ -86,7 +169,7 @@ function PatientProfile() {
           </div>
         </div>
 
-        {/* Tests Section */}
+        {/* Tests */}
         <div className="mb-10">
           <h3 className="text-xl font-bold text-blue-700 dark:text-blue-300 mb-4 flex items-center gap-2">
             🧪 Uploaded Tests
@@ -96,9 +179,9 @@ function PatientProfile() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-blue-100 dark:bg-gray-800 text-blue-800 dark:text-blue-200">
                 <tr>
-                  <th className="p-3 font-semibold border-b border-gray-300 dark:border-gray-600">Test Name</th>
-                  <th className="p-3 font-semibold border-b border-gray-300 dark:border-gray-600">Date</th>
-                  <th className="p-3 font-semibold border-b border-gray-300 dark:border-gray-600">AI Summary</th>
+                  <th className="p-3">Test Name</th>
+                  <th className="p-3">Date</th>
+                  <th className="p-3">AI Summary</th>
                 </tr>
               </thead>
               <tbody>
@@ -107,9 +190,9 @@ function PatientProfile() {
                     key={i}
                     className="border-b border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition"
                   >
-                    <td className="p-3 text-gray-800 dark:text-gray-200">{test.name}</td>
-                    <td className="p-3 text-gray-800 dark:text-gray-300">{test.date}</td>
-                    <td className="p-3 text-gray-700 dark:text-gray-300">{test.summary}</td>
+                    <td className="p-3">{test.name}</td>
+                    <td className="p-3">{test.date}</td>
+                    <td className="p-3">{test.summary}</td>
                   </tr>
                 ))}
               </tbody>
@@ -132,7 +215,7 @@ function PatientProfile() {
           </div>
         </div>
 
-        {/* Doctor Notes */}
+        {/* Notes */}
         <div>
           <h3 className="text-xl font-bold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
             🩺 Doctor’s Notes
@@ -157,33 +240,33 @@ function PatientProfile() {
                 value={editData.name}
                 onChange={(e) => setEditData({ ...editData, name: e.target.value })}
                 placeholder="Full Name"
-                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg p-2"
+                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-2"
               />
               <input
                 type="number"
                 value={editData.age}
                 onChange={(e) => setEditData({ ...editData, age: e.target.value })}
                 placeholder="Age"
-                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg p-2"
+                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-2"
               />
               <input
                 type="text"
                 value={editData.gender}
                 onChange={(e) => setEditData({ ...editData, gender: e.target.value })}
                 placeholder="Gender"
-                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg p-2"
+                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-2"
               />
               <textarea
                 value={editData.history}
                 onChange={(e) => setEditData({ ...editData, history: e.target.value })}
                 placeholder="Medical History"
-                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg p-2 h-24"
+                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-2 h-24"
               />
               <textarea
                 value={editData.notes}
                 onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
                 placeholder="Doctor's Notes"
-                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg p-2 h-24"
+                className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-lg p-2 h-24"
               />
             </div>
 
