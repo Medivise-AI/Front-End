@@ -11,10 +11,10 @@ import Dashboard from "./pages/Dashboard";
 import PatientProfile from "./pages/PatientProfile";
 import "./App.css";
 
-// مكوّن وسيط لإخفاء الـ Navbar في بعض الصفحات
 function Layout({ children }) {
   const location = useLocation();
-  const hideNavbar = location.pathname === "/"; // يخفي الـ Navbar في صفحة تسجيل الدخول فقط
+  const hideNavbar = location.pathname === "/"; 
+
   return (
     <>
       {!hideNavbar && <Navbar />}
@@ -24,6 +24,7 @@ function Layout({ children }) {
 }
 
 function App() {
+
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark") {
@@ -38,7 +39,9 @@ function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<LoginRegister />} />
+
           <Route path="/dashboard" element={<Dashboard />} />
+
           <Route path="/patient/:id" element={<PatientProfile />} />
         </Routes>
       </Layout>

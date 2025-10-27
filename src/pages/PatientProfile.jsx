@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function PatientProfile() {
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -9,19 +12,14 @@ function PatientProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(null);
 
-  const patientId = "123"; // 👈 يمكن تغييره لاحقًا بناءً على المريض المحدد في النظام أو URL
-
-  // ✅ جلب بيانات المريض من الـ API
   useEffect(() => {
     const fetchPatient = async () => {
       try {
         const token = localStorage.getItem("token");
         const response = await axios.get(
-          `https://yourapi.com/api/patients/${patientId}`,
+          `https://yourapi.com/api/patients/${id}`,
           {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           }
         );
         setPatient(response.data);
@@ -34,18 +32,18 @@ function PatientProfile() {
     };
 
     fetchPatient();
-  }, [patientId]);
+  }, [id]);
 
-  // ✅ رفع ملف جديد (تحليل أو اختبار) عبر الـ API
+  // ✅ رفع ملف جديد (تحليل أو اختبار)
   const handleUpload = async () => {
     if (!newFile) return alert("Please select a file first.");
     try {
       const formData = new FormData();
       formData.append("file", newFile);
-
       const token = localStorage.getItem("token");
+
       const response = await axios.post(
-        `https://yourapi.com/api/patients/${patientId}/upload-test`,
+        `https://yourapi.com/api/patients/${id}/upload-test`,
         formData,
         {
           headers: {
@@ -55,7 +53,6 @@ function PatientProfile() {
         }
       );
 
-      // تحديث الاختبارات بعد النجاح
       setPatient({
         ...patient,
         tests: [...patient.tests, response.data],
@@ -66,18 +63,14 @@ function PatientProfile() {
     }
   };
 
-  // ✅ تعديل بيانات المريض
+
   const handleSave = async () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.put(
-        `https://yourapi.com/api/patients/${patientId}`,
+        `https://yourapi.com/api/patients/${id}`,
         editData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setPatient(response.data);
       setIsEditing(false);
@@ -86,31 +79,26 @@ function PatientProfile() {
     }
   };
 
-  // ✅ حذف المريض
+
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this patient?")) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`https://yourapi.com/api/patients/${patientId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      await axios.delete(`https://yourapi.com/api/patients/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
       alert("Patient deleted successfully!");
-      window.location.href = "/dashboard";
+      navigate("/dashboard");
     } catch (err) {
       alert(err.response?.data?.message || "Failed to delete patient.");
     }
   };
 
-  // ✅ تحميل المظهر (داكن / فاتح)
+ 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    if (savedTheme === "dark") document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
   }, []);
 
   if (loading)
@@ -128,6 +116,7 @@ function PatientProfile() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 pt-28 pb-16 px-6 transition-colors duration-500">
       <div className="max-w-6xl mx-auto bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-2xl rounded-3xl border border-blue-100 dark:border-gray-700 p-10 transition-all duration-500">
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-10 border-b border-gray-200 dark:border-gray-700 pb-5">
           <h2 className="text-3xl font-bold text-blue-700 dark:text-blue-300 mb-4 sm:mb-0 flex items-center gap-2">
@@ -169,7 +158,6 @@ function PatientProfile() {
           </div>
         </div>
 
-        {/* Tests */}
         <div className="mb-10">
           <h3 className="text-xl font-bold text-blue-700 dark:text-blue-300 mb-4 flex items-center gap-2">
             🧪 Uploaded Tests
@@ -185,7 +173,7 @@ function PatientProfile() {
                 </tr>
               </thead>
               <tbody>
-                {patient.tests.map((test, i) => (
+                {patient.tests?.map((test, i) => (
                   <tr
                     key={i}
                     className="border-b border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition"
@@ -199,6 +187,7 @@ function PatientProfile() {
             </table>
           </div>
 
+          {/* File Upload */}
           <div className="mt-6 flex flex-col sm:flex-row items-center gap-4">
             <input
               type="file"
@@ -215,7 +204,7 @@ function PatientProfile() {
           </div>
         </div>
 
-        {/* Notes */}
+      
         <div>
           <h3 className="text-xl font-bold text-blue-700 dark:text-blue-300 mb-3 flex items-center gap-2">
             🩺 Doctor’s Notes
@@ -226,7 +215,6 @@ function PatientProfile() {
         </div>
       </div>
 
-      {/* Edit Modal */}
       {isEditing && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 dark:text-gray-200 p-8 rounded-2xl shadow-2xl w-[90%] max-w-lg transition-all duration-500">
