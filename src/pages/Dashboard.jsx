@@ -16,11 +16,12 @@ function Dashboard() {
         const token = localStorage.getItem("token"); // لو عندك JWT من تسجيل الدخول
         const response = await axios.get("https://yourapi.com/patients", {
           headers: {
-            Authorization: `Bearer ${token}`, // فقط إن كان الـ API يتطلب توكن
+            Authorization: token ? `Bearer ${token}` : "",
           },
         });
         setPatients(response.data);
       } catch (err) {
+        console.error(err);
         setError(err.response?.data?.message || "Failed to load patients");
       } finally {
         setLoading(false);
@@ -41,12 +42,13 @@ function Dashboard() {
 
       const response = await axios.post("https://yourapi.com/patients", newPatient, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: token ? `Bearer ${token}` : "",
         },
       });
 
       setPatients([...patients, response.data]);
     } catch (err) {
+      console.error(err);
       setError(err.response?.data?.message || "Failed to add patient");
     }
   };
