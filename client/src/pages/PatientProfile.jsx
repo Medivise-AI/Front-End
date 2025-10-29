@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 
 function PatientProfile() {
   const [patient, setPatient] = useState(null);
@@ -8,6 +9,10 @@ function PatientProfile() {
   const [error, setError] = useState("");
   const [newFile, setNewFile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const fileInputRef = useRef(null);
   const [editData, setEditData] = useState({
     name: "",
     gender: "",
@@ -49,72 +54,86 @@ function PatientProfile() {
     fetchPatient();
   }, [patientId]);
 
-  // جلب التحاليل
-  useEffect(() => {
-    const fetchAnalyses = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(`${API_URL}/analyses/${patientId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        // هنا نصحح البيانات لتكون المصفوفة مباشرة
-        setPatient((prev) => ({ ...prev, tests: response.data.analyses }));
-      } catch (err) {
-        console.error("Error fetching analyses:", err);
-      }
-    };
-    if (patientId) fetchAnalyses();
-  }, [patientId]);
+const fetchAnalyses = useCallback(async () => {
+  if (!patientId) return;
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(`${API_URL}/analyses/${patientId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // فلترة التحاليل الفاشلة
+    const validAnalyses = response.data.analyses.filter(
+      (a) => a !== "AI analysis failed or unavailable"
+    );
+
+    setPatient((prev) => ({ ...prev, tests: validAnalyses }));
+  } catch (err) {
+    console.error("Error fetching analyses:", err);
+  }
+}, [API_URL, patientId]);
 
 
 
-  // رفع الملف
-  const handleUpload = async () => {
-    if (!newFile) return alert("Please select a file first.");
-    try {
-      const formData = new FormData();
-      formData.append("file", newFile);
 
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `${API_URL}/analyses/${patientId}`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+  
+const handleUpload = async () => {
+  if (!newFile) return setErrorMessage("Please select a file first.");
+  setUploading(true);
 
-      // نحدث الجدول مباشرة بعد الرفع
-      setPatient((prev) => ({
-        ...prev,
-        tests: [...(prev.tests || []), response.data.analysis],
-      }));
-      setNewFile(null);
-    } catch (err) {
-      alert(err.response?.data?.message || "Upload failed.");
+  try {
+    const formData = new FormData();
+    formData.append("file", newFile);
+
+    const token = localStorage.getItem("token");
+    const response = await axios.post(
+      `${API_URL}/analyses/${patientId}`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data", Authorization: `Bearer ${token}` } }
+    );
+
+    const analysis = response.data.analysis;
+
+    if (analysis === "AI analysis failed or unavailable") {
+      setErrorMessage("AI analysis failed or unavailable. Please try again.");
+      return; // ما تمسح الملف هنا، المستخدم يقدر يحاول مرة ثانية
     }
-  };
+
+    setPatient((prev) => ({ ...prev, tests: [...(prev.tests || []), analysis] }));
+
+    // امسح الملف فقط بعد النجاح
+    setNewFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    setErrorMessage("");
+  } catch (err) {
+    setErrorMessage(err.response?.data?.message || "Upload failed.");
+    // لا تمسح الملف هنا أيضًا
+  } finally {
+    setUploading(false);
+  }
+};
 
 
 
   // تعديل البيانات
-  const handleSave = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.patch(
-        `${API_URL}/patients/${patientId}`,
-        editData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setPatient(response.data.patient);
-      setIsEditing(false);
-    } catch (err) {
-      alert(err.response?.data?.message || "Failed to update patient info.");
-    }
-  };
+ const handleSave = async () => {
+   try {
+     const token = localStorage.getItem("token");
+     const response = await axios.patch(
+       `${API_URL}/patients/${patientId}`,
+       editData,
+       { headers: { Authorization: `Bearer ${token}` } }
+     );
+     setPatient(response.data.patient);
+     setIsEditing(false);
+
+     // 👇 استدعاء تحميل التحاليل مباشرة بعد التعديل
+     await fetchAnalyses();
+   } catch (err) {
+     alert(err.response?.data?.message || "Failed to update patient info.");
+   }
+ };
 
   // حذف المريض
   const handleDelete = async () => {
@@ -153,7 +172,22 @@ function PatientProfile() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 pt-28 pb-16 px-6 transition-colors duration-500">
+
+      {errorMessage && (
+      <div className="fixed top-5 right-5 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50 animate-slide-in flex items-center justify-between gap-2">
+        <span>{errorMessage}</span>
+        <button
+          onClick={() => setErrorMessage("")}
+          className="font-bold text-lg"
+        >
+          ×
+        </button>
+      </div>
+    )}
+
       <div className="max-w-6xl mx-auto bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-2xl rounded-3xl border border-blue-100 dark:border-gray-700 p-10 transition-all duration-500">
+        
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-10 border-b border-gray-200 dark:border-gray-700 pb-5">
           <h2 className="text-3xl font-bold text-blue-700 dark:text-blue-300 mb-4 sm:mb-0 flex items-center gap-2">
@@ -221,7 +255,46 @@ function PatientProfile() {
                       key={i}
                       className="border-b border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition"
                     >
-                      <td className="p-3">{test.ai_summary}</td>
+                      <td className="p-3 text-gray-900 dark:text-gray-100 align-top">
+                        <div className="flex flex-col gap-3 max-w-full">
+                          <ReactMarkdown
+                            components={{
+                              p: ({ children, node }) => {
+                                // أول فقرة نميزها
+                                const isFirst = node.position.start.line === 1;
+                                return (
+                                  <div
+                                    className={`p-3 rounded-lg shadow-md text-sm leading-relaxed transition-all hover:scale-[1.02] ${
+                                      isFirst
+                                        ? "bg-blue-50 dark:bg-blue-900 text-blue-800 dark:text-blue-200 font-semibold"
+                                        : "bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 text-gray-800 dark:text-gray-100"
+                                    }`}
+                                  >
+                                    {children}
+                                  </div>
+                                );
+                              },
+                              li: ({ children }) => (
+                                <li className="ml-5 list-disc text-gray-700 dark:text-gray-200 text-sm leading-relaxed">
+                                  {children}
+                                </li>
+                              ),
+                              strong: ({ children }) => (
+                                <strong className="font-semibold text-blue-600 dark:text-blue-400">
+                                  {children}
+                                </strong>
+                              ),
+                              em: ({ children }) => (
+                                <em className="italic text-gray-600 dark:text-gray-300">
+                                  {children}
+                                </em>
+                              ),
+                            }}
+                          >
+                            {test.ai_summary}
+                          </ReactMarkdown>
+                        </div>
+                      </td>
                     </tr>
                   ))
                 ) : (
@@ -237,10 +310,11 @@ function PatientProfile() {
 
           <div className="mt-6 flex flex-col sm:flex-row items-center gap-4">
             <input
+              ref={fileInputRef} // 👈 هنا
               type="file"
               accept="application/pdf"
               onChange={(e) => setNewFile(e.target.files[0])}
-              className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 rounded-lg p-2 w-full sm:w-72"
+              className="border border-gray-300 rounded-lg p-2 w-full sm:w-72"
             />
             <button
               onClick={handleUpload}
@@ -318,6 +392,22 @@ function PatientProfile() {
               >
                 Save
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Uploading Modal */}
+      {uploading && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+          <div className="bg-white dark:bg-gray-800 text-center p-8 rounded-2xl shadow-2xl w-[90%] max-w-md">
+            <div className="flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid"></div>
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">
+                Processing file, please wait...
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                AI is analyzing your document 🔍
+              </p>
             </div>
           </div>
         </div>

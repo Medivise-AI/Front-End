@@ -33,30 +33,34 @@ export default function Navbar() {
 
 
   return (
-    <nav className="fixed top-0 left-0 w-full bg-blue-600 dark:bg-gray-900 text-white py-4 shadow-lg z-50 transition-colors">
-      <div className="max-w-6xl mx-auto flex justify-between items-center px-6">
-        <Link to="/dashboard" className="flex items-center gap-3">
+    <nav className="fixed top-0 left-0 w-full bg-blue-600 dark:bg-gray-900 text-white py-4 shadow-lg z-50 transition-colors duration-300">
+      <div className="w-full flex justify-between items-center px-6 sm:px-10 md:px-16 font-manrope">
+        <Link
+          to="/dashboard"
+          className="flex items-center gap-2 hover:opacity-90 transition"
+        >
           <img
             src="/doctor-logo.png"
             alt="MEDIVISE AI"
-            className="w-8 h-8 object-contain"
+            className="w-10 h-10 object-contain"
           />
-          <span className="text-2xl font-bold tracking-wide hover:text-blue-200 dark:hover:text-gray-300 transition">
-            MEDIVISE - AI
+          <span className="text-xl font-extrabold tracking-wide">
+            MEDIVISE
+            <span className="text-blue-200 dark:text-blue-400"> AI</span>
           </span>
         </Link>
 
-        <div className="flex gap-4 items-center">
+        <div className="flex items-center gap-6">
           <Link
             to="/dashboard"
-            className="hover:text-blue-200 dark:hover:text-gray-300 transition"
+            className="text-white/90 hover:text-white dark:text-gray-300 dark:hover:text-white transition"
           >
             Dashboard
           </Link>
 
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="border border-white/50 text-sm px-3 py-1.5 rounded-md hover:bg-white/20 transition"
+            className="flex items-center gap-1 border border-white/40 px-3 py-1.5 rounded-md text-sm hover:bg-white/20 dark:hover:bg-gray-700 transition-all duration-200"
           >
             {darkMode ? "☀️ Light" : "🌙 Dark"}
           </button>
@@ -64,7 +68,7 @@ export default function Navbar() {
           <button
             onClick={handleLogout}
             disabled={loading}
-            className={`bg-white text-blue-600 px-4 py-1.5 rounded-md hover:bg-blue-100 transition ${
+            className={`bg-white text-blue-600 px-4 py-1.5 rounded-md font-semibold hover:bg-blue-100 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-500 transition-all duration-200  ${
               loading && "opacity-60 cursor-not-allowed"
             }`}
           >
