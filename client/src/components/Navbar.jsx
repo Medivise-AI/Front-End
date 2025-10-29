@@ -11,7 +11,6 @@ export default function Navbar() {
     if (savedTheme === "dark") setDarkMode(true);
   }, []);
 
-  
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -22,16 +21,14 @@ export default function Navbar() {
     }
   }, [darkMode]);
 
-  
+  // تسجيل الخروج
   const handleLogout = () => {
-
     localStorage.removeItem("token");
     localStorage.removeItem("doctor");
     setLoading(true);
     navigate("/");
   };
-
-
+  
   return (
     <nav className="fixed top-0 left-0 w-full bg-blue-600 dark:bg-gray-900 text-white py-4 shadow-lg z-50 transition-colors duration-300">
       <div className="w-full flex justify-between items-center px-6 sm:px-10 md:px-16 font-manrope">
@@ -58,6 +55,7 @@ export default function Navbar() {
             Dashboard
           </Link>
 
+          {}
           <button
             onClick={() => setDarkMode(!darkMode)}
             className="flex items-center gap-1 border border-white/40 px-3 py-1.5 rounded-md text-sm hover:bg-white/20 dark:hover:bg-gray-700 transition-all duration-200"
@@ -65,6 +63,7 @@ export default function Navbar() {
             {darkMode ? "☀️ Light" : "🌙 Dark"}
           </button>
 
+          {}
           <button
             onClick={handleLogout}
             disabled={loading}

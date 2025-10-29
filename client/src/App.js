@@ -9,7 +9,7 @@ import Navbar from "./components/Navbar";
 import LoginRegister from "./pages/LoginRegister";
 import Dashboard from "./pages/Dashboard";
 import PatientProfile from "./pages/PatientProfile";
-import PrivateRoute from "./components/PrivateRoute";
+//import PrivateRoute from "./components/PrivateRoute";
 import "./App.css";
 
 // مكوّن وسيط لإخفاء الـ Navbar في بعض الصفحات
@@ -43,9 +43,9 @@ function App() {
           <Route
             path="/dashboard"
             element={
-              <PrivateRoute>
+              //<PrivateRoute>
                 <Dashboard />
-              </PrivateRoute>
+              //</PrivateRoute>
             }
           />
 

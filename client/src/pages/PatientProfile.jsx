@@ -255,6 +255,7 @@ const handleUpload = async () => {
                       key={i}
                       className="border-b border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition"
                     >
+
                       <td className="p-3 text-gray-900 dark:text-gray-100 align-top">
                         <div className="flex flex-col gap-3 max-w-full">
                           <ReactMarkdown
