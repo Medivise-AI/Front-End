@@ -221,7 +221,7 @@ function PatientProfile() {
                       key={i}
                       className="border-b border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-gray-700 transition"
                     >
-                      <td className="p-3">{test.ai_summary}</td>
+                      <td className="p-3 text-gray-900 dark:text-gray-100">{test.ai_summary}</td>
                     </tr>
                   ))
                 ) : (
